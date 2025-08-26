@@ -228,9 +228,164 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  // Animate floating cards
+  // Enhanced floating card animations
   const cards = document.querySelectorAll('.floating-card');
   cards.forEach((card, index) => {
     card.style.animationDelay = `${index * 0.2}s`;
+    
+    // Add hover effects
+    card.addEventListener('mouseenter', function() {
+      this.style.transform = 'translateY(-10px) scale(1.05)';
+      this.style.transition = 'all 0.3s ease';
+    });
+    
+    card.addEventListener('mouseleave', function() {
+      this.style.transform = 'translateY(0) scale(1)';
+    });
   });
+
+  // Interactive navigation
+  const navLinks = document.querySelectorAll('.nav-link');
+  navLinks.forEach(link => {
+    link.addEventListener('click', function(e) {
+      // Remove active class from all links
+      navLinks.forEach(l => l.classList.remove('active'));
+      // Add active class to clicked link
+      this.classList.add('active');
+    });
+  });
+
+  // Button interactions
+  const buttons = document.querySelectorAll('.btn-primary, .btn-secondary, .cta-button');
+  buttons.forEach(button => {
+    button.addEventListener('click', function() {
+      // Create ripple effect
+      const ripple = document.createElement('span');
+      ripple.style.position = 'absolute';
+      ripple.style.borderRadius = '50%';
+      ripple.style.background = 'rgba(255, 255, 255, 0.6)';
+      ripple.style.transform = 'scale(0)';
+      ripple.style.animation = 'ripple 0.6s linear';
+      ripple.style.left = '50%';
+      ripple.style.top = '50%';
+      ripple.style.width = '20px';
+      ripple.style.height = '20px';
+      ripple.style.marginLeft = '-10px';
+      ripple.style.marginTop = '-10px';
+      
+      this.style.position = 'relative';
+      this.style.overflow = 'hidden';
+      this.appendChild(ripple);
+      
+      setTimeout(() => {
+        ripple.remove();
+      }, 600);
+    });
+  });
+
+  // Feature cards hover effects
+  const featureCards = document.querySelectorAll('.feature-card');
+  featureCards.forEach(card => {
+    card.addEventListener('mouseenter', function() {
+      const icon = this.querySelector('.feature-icon');
+      icon.style.transform = 'rotate(10deg) scale(1.1)';
+      icon.style.transition = 'all 0.3s ease';
+    });
+    
+    card.addEventListener('mouseleave', function() {
+      const icon = this.querySelector('.feature-icon');
+      icon.style.transform = 'rotate(0deg) scale(1)';
+    });
+  });
+
+  // Animated counter for stats
+  const animateCounter = (element, target) => {
+    let current = 0;
+    const increment = target / 100;
+    const timer = setInterval(() => {
+      current += increment;
+      if (current >= target) {
+        element.textContent = target + (element.textContent.includes('%') ? '%' : element.textContent.includes('+') ? '+' : '');
+        clearInterval(timer);
+      } else {
+        element.textContent = Math.floor(current) + (element.textContent.includes('%') ? '%' : element.textContent.includes('+') ? '+' : '');
+      }
+    }, 20);
+  };
+
+  // Intersection Observer for stats animation
+  const statsObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const statNumbers = entry.target.querySelectorAll('.stat-number');
+        statNumbers.forEach(stat => {
+          const text = stat.textContent;
+          let target = parseInt(text);
+          if (text.includes('99.9%')) target = 99.9;
+          else if (text.includes('500+')) target = 500;
+          else if (text.includes('150+')) target = 150;
+          else if (text.includes('24/7')) target = 24;
+          
+          animateCounter(stat, target);
+        });
+        statsObserver.unobserve(entry.target);
+      }
+    });
+  });
+
+  const statsSection = document.querySelector('.stats');
+  if (statsSection) {
+    statsObserver.observe(statsSection);
+  }
+
+  // Parallax effect for hero background
+  window.addEventListener('scroll', function() {
+    const scrolled = window.pageYOffset;
+    const heroBackground = document.querySelector('.hero-background');
+    if (heroBackground) {
+      heroBackground.style.transform = `translateY(${scrolled * 0.5}px)`;
+    }
+  });
+
+  // Mobile menu toggle (for responsive design)
+  const createMobileMenu = () => {
+    const header = document.querySelector('.header .container');
+    const navMenu = document.querySelector('.nav-menu');
+    
+    // Create mobile menu button
+    const mobileMenuBtn = document.createElement('button');
+    mobileMenuBtn.className = 'mobile-menu-btn';
+    mobileMenuBtn.innerHTML = '☰';
+    mobileMenuBtn.style.display = 'none';
+    mobileMenuBtn.style.background = 'none';
+    mobileMenuBtn.style.border = 'none';
+    mobileMenuBtn.style.fontSize = '1.5rem';
+    mobileMenuBtn.style.cursor = 'pointer';
+    mobileMenuBtn.style.color = '#667eea';
+    
+    header.appendChild(mobileMenuBtn);
+    
+    mobileMenuBtn.addEventListener('click', () => {
+      navMenu.classList.toggle('mobile-active');
+    });
+  };
+
+  createMobileMenu();
+
+  // Add loading animation
+  const addLoadingAnimation = () => {
+    const elements = document.querySelectorAll('.feature-card, .floating-card, .stat-item');
+    elements.forEach((el, index) => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(30px)';
+      el.style.transition = 'all 0.6s ease';
+      
+      setTimeout(() => {
+        el.style.opacity = '1';
+        el.style.transform = 'translateY(0)';
+      }, index * 100);
+    });
+  };
+
+  addLoadingAnimation();
 });
