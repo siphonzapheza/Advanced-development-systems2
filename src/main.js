@@ -4,6 +4,8 @@ import { BusResults } from './components/BusResults.js'
 import { SeatSelection } from './components/SeatSelection.js'
 import { Payment } from './components/Payment.js'
 import { Confirmation } from './components/Confirmation.js'
+import { Auth } from './components/Auth.js'
+import { MyBookings } from './components/MyBookings.js'
 
 class BusTicketApp {
   constructor() {
@@ -13,12 +15,19 @@ class BusTicketApp {
     this.seatSelection = new SeatSelection();
     this.payment = new Payment();
     this.confirmation = new Confirmation();
+    this.auth = new Auth();
+    this.myBookings = new MyBookings();
     this.searchData = null;
     
     this.init();
   }
 
   init() {
+    // Check authentication first
+    if (!this.auth.isAuthenticated()) {
+      this.currentView = 'auth';
+    }
+    
     this.render();
     this.setupEventListeners();
     
@@ -30,7 +39,16 @@ class BusTicketApp {
     const app = document.querySelector('#app');
     
     switch (this.currentView) {
+      case 'auth':
+        app.innerHTML = this.auth.render(this.authMode || 'login');
+        this.auth.init(this.authMode || 'login');
+        break;
+        
       case 'search':
+        if (!this.auth.isAuthenticated()) {
+          this.showAuth();
+          return;
+        }
         app.innerHTML = this.renderHeader() + this.searchForm.render();
         this.searchForm.onSearch = (data) => this.handleSearch(data);
         this.searchForm.init();
@@ -55,10 +73,17 @@ class BusTicketApp {
         app.innerHTML = this.confirmation.render(this.confirmationData);
         this.confirmation.init();
         break;
+        
+      case 'bookings':
+        app.innerHTML = this.renderHeader() + this.myBookings.render();
+        this.myBookings.init();
+        break;
     }
   }
 
   renderHeader() {
+    const user = this.auth.getCurrentUser();
+    
     return `
       <header class="app-header">
         <div class="container">
@@ -77,13 +102,15 @@ class BusTicketApp {
               <a href="#" class="nav-link ${this.currentView === 'search' ? 'active' : ''}" onclick="window.busApp.showSearch()">
                 Search
               </a>
-              <a href="#" class="nav-link">My Bookings</a>
+              <a href="#" class="nav-link ${this.currentView === 'bookings' ? 'active' : ''}" onclick="window.busApp.showMyBookings()">My Bookings</a>
               <a href="#" class="nav-link">Help</a>
             </nav>
             
             <div class="header-actions">
-              <button class="login-btn">Login</button>
-              <button class="signup-btn">Sign Up</button>
+              <div class="user-menu">
+                <span class="user-name">Hi, ${user.fullName.split(' ')[0]}!</span>
+                <button class="logout-btn" onclick="window.busApp.logout()">Logout</button>
+              </div>
             </div>
           </div>
         </div>
@@ -101,12 +128,30 @@ class BusTicketApp {
     });
   }
 
+  showAuth(mode = 'login') {
+    this.authMode = mode;
+    this.currentView = 'auth';
+    this.render();
+    history.pushState({ view: 'auth' }, '', '#auth');
+  }
+
+  onAuthSuccess() {
+    this.showSearch();
+  }
+
+  logout() {
+    this.auth.logout();
+  }
   handleSearch(searchData) {
     this.searchData = searchData;
     this.showResults();
   }
 
   showSearch() {
+    if (!this.auth.isAuthenticated()) {
+      this.showAuth();
+      return;
+    }
     this.currentView = 'search';
     this.render();
     history.pushState({ view: 'search' }, '', '#search');
@@ -118,6 +163,16 @@ class BusTicketApp {
     history.pushState({ view: 'results' }, '', '#results');
   }
 
+  showMyBookings() {
+    if (!this.auth.isAuthenticated()) {
+      this.showAuth();
+      return;
+    }
+    this.myBookings = new MyBookings(); // Refresh bookings
+    this.currentView = 'bookings';
+    this.render();
+    history.pushState({ view: 'bookings' }, '', '#bookings');
+  }
   selectBus(busId) {
     this.selectedBusId = busId;
     this.showSeatSelection(busId);
@@ -139,6 +194,21 @@ class BusTicketApp {
 
   showConfirmation(confirmationData) {
     this.confirmationData = confirmationData;
+    
+    // Save booking to user's bookings
+    this.myBookings.addBooking({
+      bookingId: confirmationData.bookingId,
+      fromCity: confirmationData.busData.fromCity,
+      toCity: confirmationData.busData.toCity,
+      company: confirmationData.busData.company,
+      departureTime: confirmationData.busData.departureTime,
+      arrivalTime: confirmationData.busData.arrivalTime,
+      travelDate: new Date().toISOString(), // In real app, this would be the selected travel date
+      seats: confirmationData.selectedSeats,
+      passengers: confirmationData.selectedSeats.length,
+      totalAmount: confirmationData.totalPrice.toFixed(2)
+    });
+    
     this.currentView = 'confirmation';
     this.render();
     history.pushState({ view: 'confirmation' }, '', '#confirmation');
